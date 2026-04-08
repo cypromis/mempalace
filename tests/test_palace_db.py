@@ -5,7 +5,6 @@ import sys
 import tempfile
 import unittest.mock as mock
 
-import chromadb
 import pytest
 
 from mempalace import palace_db
@@ -87,7 +86,7 @@ def test_get_client_returns_http_when_host_configured(tmp_path, monkeypatch):
     palace_db._http_clients.clear()
     with mock.patch("mempalace.palace_db.chromadb.HttpClient") as mock_http:
         mock_http.return_value = mock.MagicMock()
-        client = palace_db.get_client(palace_path=str(tmp_path))
+        palace_db.get_client(palace_path=str(tmp_path))
         mock_http.assert_called_once_with(host="localhost", port=8000, ssl=False)
 
 
