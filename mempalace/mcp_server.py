@@ -30,9 +30,8 @@ from .config import MempalaceConfig, sanitize_name, sanitize_content
 from .version import __version__
 from .searcher import search_memories
 from .palace_graph import traverse, find_tunnels, graph_stats
-import chromadb
-
 from .knowledge_graph import KnowledgeGraph
+from . import palace_db
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 logger = logging.getLogger("mempalace_mcp")
@@ -105,10 +104,10 @@ _collection_cache = None
 
 
 def _get_client():
-    """Return a singleton ChromaDB PersistentClient."""
+    """Return a singleton ChromaDB client (local or remote via palace_db)."""
     global _client_cache
     if _client_cache is None:
-        _client_cache = chromadb.PersistentClient(path=_config.palace_path)
+        _client_cache = palace_db.get_client(palace_path=_config.palace_path)
     return _client_cache
 
 
