@@ -51,3 +51,14 @@ def test_remote_config_env_host_none_when_empty_string():
         assert cfg.chroma_host is None
     finally:
         del os.environ["MEMPALACE_CHROMA_HOST"]
+
+
+def test_remote_config_invalid_port_raises():
+    """Non-integer MEMPALACE_CHROMA_PORT raises ValueError."""
+    os.environ["MEMPALACE_CHROMA_PORT"] = "not-a-port"
+    try:
+        cfg = MempalaceConfig(config_dir=tempfile.mkdtemp())
+        with pytest.raises(ValueError, match="MEMPALACE_CHROMA_PORT"):
+            _ = cfg.chroma_port
+    finally:
+        del os.environ["MEMPALACE_CHROMA_PORT"]
