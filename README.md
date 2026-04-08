@@ -654,6 +654,13 @@ services:
 docker compose up -d
 ```
 
+> **Version note:** The image is pinned to `0.6.3` to match the `chromadb` client
+> version that MemPalace depends on. ChromaDB 1.0 introduced breaking changes to
+> the collection configuration API (a `_type` field the 0.6.x client does not
+> understand), so mixing versions causes `KeyError: '_type'` errors when creating
+> or opening collections. Do not use `chromadb/chroma:latest` until MemPalace
+> upgrades its client dependency.
+
 ### Configuring MemPalace for remote mode
 
 Add to `~/.mempalace/config.json`:
