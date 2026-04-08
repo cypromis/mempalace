@@ -153,6 +153,33 @@ class MempalaceConfig:
         return self._file_config.get("collection_name", DEFAULT_COLLECTION_NAME)
 
     @property
+    def chroma_host(self):
+        """Hostname/IP of remote ChromaDB server. None means local mode."""
+        val = os.environ.get("MEMPALACE_CHROMA_HOST")
+        if val is not None:
+            return val or None  # treat empty string as absent
+        return self._file_config.get("chroma_host") or None
+
+    @property
+    def chroma_port(self):
+        """Port for remote ChromaDB server. Default 8000."""
+        val = os.environ.get("MEMPALACE_CHROMA_PORT")
+        if val is not None:
+            try:
+                return int(val)
+            except ValueError:
+                pass
+        return int(self._file_config.get("chroma_port", 8000))
+
+    @property
+    def chroma_ssl(self):
+        """Use SSL for remote ChromaDB connection. Default False."""
+        val = os.environ.get("MEMPALACE_CHROMA_SSL")
+        if val is not None:
+            return val.lower() in ("1", "true", "yes")
+        return bool(self._file_config.get("chroma_ssl", False))
+
+    @property
     def people_map(self):
         """Mapping of name variants to canonical names."""
         if self._people_map_file.exists():
