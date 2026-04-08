@@ -372,7 +372,7 @@ def cmd_remote(args):
 
     proto = "https" if cfg.chroma_ssl else "http"
     url = f"{proto}://{cfg.chroma_host}:{cfg.chroma_port}"
-    print(f"\n  Mode: REMOTE (HttpClient)")
+    print("\n  Mode: REMOTE (HttpClient)")
     print(f"  Server: {url}")
 
     try:
