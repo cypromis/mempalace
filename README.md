@@ -641,7 +641,7 @@ or multi-user setups where you want a single, always-on palace.
 # docker-compose.yml
 services:
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.6.3
     ports:
       - "8000:8000"
     volumes:
