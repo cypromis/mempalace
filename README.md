@@ -623,6 +623,76 @@ Plain text. Becomes Layer 0 — loaded every session.
 
 ---
 
+## Remote Mode
+
+By default MemPalace stores vectors locally using ChromaDB's `PersistentClient`.
+Remote mode points it at a shared ChromaDB server — useful for multi-workstation
+or multi-user setups where you want a single, always-on palace.
+
+### When to use remote mode
+
+- You work across multiple machines and want shared memory.
+- Multiple users share one palace (e.g. a team AI assistant).
+- You want to offload embeddings to a dedicated server.
+
+### Running ChromaDB with Docker
+
+```yaml
+# docker-compose.yml
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chromadb_data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=False
+```
+
+```bash
+docker compose up -d
+```
+
+### Configuring MemPalace for remote mode
+
+Add to `~/.mempalace/config.json`:
+
+```json
+{
+  "chroma_host": "m1mini.local",
+  "chroma_port": 8000,
+  "chroma_ssl": false
+}
+```
+
+Or use environment variables (higher priority than the config file):
+
+```bash
+export MEMPALACE_CHROMA_HOST=m1mini.local
+export MEMPALACE_CHROMA_PORT=8000
+export MEMPALACE_CHROMA_SSL=false
+```
+
+| Key / Env Var | Default | Description |
+|---|---|---|
+| `chroma_host` / `MEMPALACE_CHROMA_HOST` | _(none)_ | Hostname or IP. Absence means local mode. |
+| `chroma_port` / `MEMPALACE_CHROMA_PORT` | `8000` | TCP port of the ChromaDB server. |
+| `chroma_ssl` / `MEMPALACE_CHROMA_SSL` | `false` | Set to `true` for HTTPS. |
+
+> **Note:** `palace_path` is ignored in remote mode. The server manages its own storage.
+
+### Verify connectivity
+
+```bash
+mempalace remote status
+```
+
+This prints the active mode and — in remote mode — attempts a `.heartbeat()` call
+to confirm the server is reachable.
+
+---
+
 ## File Reference
 
 | File | What |
