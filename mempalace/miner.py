@@ -626,7 +626,7 @@ def status(palace_path: str):
     """Show what's been filed in the palace."""
     try:
         client = palace_db.get_client(palace_path=palace_path)
-        col = client.get_collection("mempalace_drawers")
+        col = client.get_collection(palace_db.DEFAULT_COLLECTION)
     except Exception:
         print(f"\n  No palace found at {palace_path}")
         print("  Run: mempalace init <dir> then mempalace mine <dir>")
