@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest.mock as mock
+from pathlib import Path
 
 import pytest
 
@@ -112,7 +113,7 @@ def test_remote_status_local_mode(monkeypatch):
         [sys.executable, "-m", "mempalace", "remote", "status"],
         capture_output=True,
         text=True,
-        cwd="/Users/cypromis/Projects/claude-code/mempalace",
+        cwd=str(Path(__file__).parent.parent),
     )
     assert result.returncode == 0
     assert "local" in result.stdout.lower()
