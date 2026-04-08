@@ -168,9 +168,7 @@ class MempalaceConfig:
             try:
                 return int(val)
             except ValueError:
-                raise ValueError(
-                    f"MEMPALACE_CHROMA_PORT must be an integer, got: {val!r}"
-                )
+                raise ValueError(f"MEMPALACE_CHROMA_PORT must be an integer, got: {val!r}")
         return int(self._file_config.get("chroma_port", 8000))
 
     @property
