@@ -362,6 +362,10 @@ def cmd_compress(args):
 
 def cmd_remote(args):
     """Show remote/local ChromaDB mode and test connectivity if remote."""
+    remote_cmd = getattr(args, "remote_cmd", None)
+    if remote_cmd not in (None, "status"):
+        print(f"Unknown remote command: {remote_cmd}")
+        return
     cfg = MempalaceConfig()
 
     if not cfg.chroma_host:
