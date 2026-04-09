@@ -691,6 +691,18 @@ services:
 docker compose up -d
 ```
 
+> **Security:** ChromaDB 0.6.x has no authentication. The container above
+> binds to all interfaces on port 8000 by default — anyone who can reach
+> that port has unrestricted read/write access to your memories.
+> Restrict access using one of:
+>
+> - Bind to localhost only (`ports: "127.0.0.1:8000:8000"`) and use SSH
+>   port-forwarding from other machines (`ssh -L 8000:localhost:8000 host`).
+> - Place the container on a private network or behind a VPN.
+> - Add a firewall rule that whitelists only your workstation IPs.
+>
+> Do not expose port 8000 to the public internet.
+
 > **Version note:** The image is pinned to `0.6.3` to match the `chromadb` client
 > version that MemPalace depends on. ChromaDB 1.0 introduced breaking changes to
 > the collection configuration API (a `_type` field the 0.6.x client does not
