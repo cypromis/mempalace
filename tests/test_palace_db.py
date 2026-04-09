@@ -106,6 +106,37 @@ def test_get_collection_returns_existing(tmp_path):
     assert col2.count() == 1
 
 
+def test_clear_caches_empties_both_caches(tmp_path, monkeypatch):
+    """clear_caches() empties both _http_clients and _persistent_clients."""
+    # Populate persistent cache
+    palace_db.get_client(palace_path=str(tmp_path))
+    assert len(palace_db._persistent_clients) > 0
+
+    # Populate http cache with a mock
+    monkeypatch.setenv("MEMPALACE_CHROMA_HOST", "localhost")
+    with mock.patch("mempalace.palace_db.chromadb.HttpClient", return_value=mock.MagicMock()):
+        palace_db.get_client()
+    assert len(palace_db._http_clients) > 0
+
+    palace_db.clear_caches()
+
+    assert len(palace_db._http_clients) == 0
+    assert len(palace_db._persistent_clients) == 0
+
+
+def test_remote_status_unknown_subcommand_exits_nonzero(monkeypatch):
+    """'mempalace remote badcmd' exits with code 1 and prints to stderr."""
+    monkeypatch.delenv("MEMPALACE_CHROMA_HOST", raising=False)
+    result = subprocess.run(
+        [sys.executable, "-m", "mempalace", "remote", "badcmd"],
+        capture_output=True,
+        text=True,
+        cwd=str(Path(__file__).parent.parent),
+    )
+    assert result.returncode != 0
+    assert "badcmd" in result.stderr.lower()
+
+
 def test_remote_status_local_mode(monkeypatch):
     """'mempalace remote status' prints local mode when no host configured."""
     monkeypatch.delenv("MEMPALACE_CHROMA_HOST", raising=False)
@@ -117,3 +148,13 @@ def test_remote_status_local_mode(monkeypatch):
     )
     assert result.returncode == 0
     assert "local" in result.stdout.lower()
+
+
+def test_palace_graph_routes_through_palace_db(tmp_path):
+    """palace_graph._get_collection must use palace_db, not chromadb directly."""
+    from mempalace import palace_graph
+
+    with mock.patch("mempalace.palace_db.get_collection") as mock_get_col:
+        mock_get_col.return_value = mock.MagicMock()
+        palace_graph._get_collection()
+        assert mock_get_col.called, "palace_graph must route through palace_db.get_collection"
