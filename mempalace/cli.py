@@ -32,6 +32,7 @@ import argparse
 from pathlib import Path
 
 from .config import MempalaceConfig
+from . import palace_db
 
 
 def cmd_init(args):
@@ -157,7 +158,6 @@ def cmd_status(args):
 
 def cmd_repair(args):
     """Rebuild palace vector index from SQLite metadata."""
-    import chromadb
     import shutil
 
     palace_path = os.path.expanduser(args.palace) if args.palace else MempalaceConfig().palace_path
@@ -173,8 +173,8 @@ def cmd_repair(args):
 
     # Try to read existing drawers
     try:
-        client = chromadb.PersistentClient(path=palace_path)
-        col = client.get_collection("mempalace_drawers")
+        client = palace_db.get_client(palace_path=palace_path)
+        col = client.get_collection(palace_db.DEFAULT_COLLECTION)
         total = col.count()
         print(f"  Drawers found: {total}")
     except Exception as e:
@@ -209,8 +209,8 @@ def cmd_repair(args):
     shutil.copytree(palace_path, backup_path)
 
     print("  Rebuilding collection...")
-    client.delete_collection("mempalace_drawers")
-    new_col = client.create_collection("mempalace_drawers")
+    client.delete_collection(palace_db.DEFAULT_COLLECTION)
+    new_col = client.create_collection(palace_db.DEFAULT_COLLECTION)
 
     filed = 0
     for i in range(0, len(all_ids), batch_size):
@@ -242,7 +242,6 @@ def cmd_instructions(args):
 
 def cmd_compress(args):
     """Compress drawers in a wing using AAAK Dialect."""
-    import chromadb
     from .dialect import Dialect
 
     palace_path = os.path.expanduser(args.palace) if args.palace else MempalaceConfig().palace_path
@@ -263,8 +262,8 @@ def cmd_compress(args):
 
     # Connect to palace
     try:
-        client = chromadb.PersistentClient(path=palace_path)
-        col = client.get_collection("mempalace_drawers")
+        client = palace_db.get_client(palace_path=palace_path)
+        col = client.get_collection(palace_db.DEFAULT_COLLECTION)
     except Exception:
         print(f"\n  No palace found at {palace_path}")
         print("  Run: mempalace init <dir> then mempalace mine <dir>")
@@ -359,6 +358,35 @@ def cmd_compress(args):
     print(f"  Total: {orig_tokens:,}t -> {comp_tokens:,}t ({ratio:.1f}x compression)")
     if args.dry_run:
         print("  (dry run -- nothing stored)")
+
+
+def cmd_remote(args):
+    """Show remote/local ChromaDB mode and test connectivity if remote."""
+    remote_cmd = getattr(args, "remote_cmd", None)
+    if remote_cmd not in (None, "status"):
+        print(f"Unknown remote command: {remote_cmd}")
+        return
+    cfg = MempalaceConfig()
+
+    if not cfg.chroma_host:
+        print("\n  Mode: LOCAL (PersistentClient)")
+        print(f"  Palace path: {cfg.palace_path}")
+        print()
+        return
+
+    proto = "https" if cfg.chroma_ssl else "http"
+    url = f"{proto}://{cfg.chroma_host}:{cfg.chroma_port}"
+    print("\n  Mode: REMOTE (HttpClient)")
+    print(f"  Server: {url}")
+
+    try:
+        client = palace_db.get_client()
+        hb = client.heartbeat()
+        print(f"  Status: OK (heartbeat={hb})")
+    except Exception as e:
+        print(f"  Status: UNREACHABLE — {e}")
+        sys.exit(1)
+    print()
 
 
 def main():
@@ -503,6 +531,12 @@ def main():
     # status
     sub.add_parser("status", help="Show what's been filed")
 
+    # remote
+    p_remote = sub.add_parser("remote", help="Show ChromaDB mode (local or remote)")
+    p_remote_sub = p_remote.add_subparsers(dest="remote_cmd")
+    p_remote_sub.add_parser("status", help="Show remote/local mode and connectivity")
+    p_remote.set_defaults(func=cmd_remote)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -535,6 +569,7 @@ def main():
         "wake-up": cmd_wakeup,
         "repair": cmd_repair,
         "status": cmd_status,
+        "remote": cmd_remote,
     }
     dispatch[args.command](args)
 

@@ -6,6 +6,7 @@ import platform
 
 from .cli import main  # noqa: E402
 from .version import __version__  # noqa: E402
+from . import palace_db  # noqa: F401
 
 # ChromaDB 0.6.x ships a Posthog telemetry client whose capture() signature is
 # incompatible with the bundled posthog library, producing noisy stderr warnings
@@ -18,4 +19,4 @@ logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.CRITICA
 if platform.machine() == "arm64" and platform.system() == "Darwin":
     os.environ.setdefault("ORT_DISABLE_COREML", "1")
 
-__all__ = ["main", "__version__"]
+__all__ = ["main", "__version__", "palace_db"]

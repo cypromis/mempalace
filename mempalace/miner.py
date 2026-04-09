@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
-import chromadb
+from . import palace_db
 
 from .palace import SKIP_DIRS, get_collection, file_already_mined
 
@@ -615,8 +615,8 @@ def mine(
 def status(palace_path: str):
     """Show what's been filed in the palace."""
     try:
-        client = chromadb.PersistentClient(path=palace_path)
-        col = client.get_collection("mempalace_drawers")
+        client = palace_db.get_client(palace_path=palace_path)
+        col = client.get_collection(palace_db.DEFAULT_COLLECTION)
     except Exception:
         print(f"\n  No palace found at {palace_path}")
         print("  Run: mempalace init <dir> then mempalace mine <dir>")

@@ -30,9 +30,10 @@ from .config import MempalaceConfig, sanitize_name, sanitize_content
 from .version import __version__
 from .searcher import search_memories
 from .palace_graph import traverse, find_tunnels, graph_stats
-import chromadb
-
 from .knowledge_graph import KnowledgeGraph
+from . import palace_db
+
+_kg = KnowledgeGraph()
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 logger = logging.getLogger("mempalace_mcp")
@@ -100,15 +101,11 @@ def _wal_log(operation: str, params: dict, result: dict = None):
         logger.error(f"WAL write failed: {e}")
 
 
-_client_cache = None
-_collection_cache = None
-
-
 def _get_client():
-    """Return a singleton ChromaDB PersistentClient."""
+    """Return a singleton ChromaDB client (local or remote via palace_db)."""
     global _client_cache
     if _client_cache is None:
-        _client_cache = chromadb.PersistentClient(path=_config.palace_path)
+        _client_cache = palace_db.get_client(palace_path=_config.palace_path)
     return _client_cache
 
 
@@ -700,7 +697,7 @@ TOOLS = {
         "handler": tool_kg_stats,
     },
     "mempalace_traverse": {
-        "description": "Walk the palace graph from a room. Shows connected ideas across wings — the tunnels. Like following a thread through the palace: start at 'chromadb-setup' in wing_code, discover it connects to wing_myproject (planning) and wing_user (feelings about it).",
+        "description": "Walk the palace graph from a room. Shows connected ideas across wings — the tunnels. Like following a thread through the palace: start at 'chromadb-setup' in wing_code, discover it connects to wing_myproject (planning) and wing_user (feelings about it). Note: reads from local palace only — remote data is not included if remote mode is configured.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -718,7 +715,7 @@ TOOLS = {
         "handler": tool_traverse_graph,
     },
     "mempalace_find_tunnels": {
-        "description": "Find rooms that bridge two wings — the hallways connecting different domains. E.g. what topics connect wing_code to wing_team?",
+        "description": "Find rooms that bridge two wings — the hallways connecting different domains. E.g. what topics connect wing_code to wing_team? Note: reads from local palace only — remote data is not included if remote mode is configured.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -729,7 +726,7 @@ TOOLS = {
         "handler": tool_find_tunnels,
     },
     "mempalace_graph_stats": {
-        "description": "Palace graph overview: total rooms, tunnel connections, edges between wings.",
+        "description": "Palace graph overview: total rooms, tunnel connections, edges between wings. Note: reads from local palace only — remote data is not included if remote mode is configured.",
         "input_schema": {"type": "object", "properties": {}},
         "handler": tool_graph_stats,
     },

@@ -623,6 +623,121 @@ Plain text. Becomes Layer 0 — loaded every session.
 
 ---
 
+## Remote Mode
+
+By default MemPalace stores vectors locally using ChromaDB's `PersistentClient`.
+Remote mode points it at a shared ChromaDB server — useful for multi-workstation
+or multi-user setups where you want a single, always-on palace.
+
+### When to use remote mode
+
+- You work across multiple machines and want shared memory.
+- Multiple users share one palace (e.g. a team AI assistant).
+- You want to offload embeddings to a dedicated server.
+
+### v1 scope and known limitations
+
+This release targets **one developer across multiple workstations**. All clients
+share a single `mempalace_drawers` collection with no per-user namespacing or
+authentication.
+
+| Scenario | Works? | Notes |
+|---|---|---|
+| 1 dev, multiple workstations | ✅ Perfect fit | Same person's memories sync across machines |
+| Multiple devs, shared team palace | ✅ Works | All memories pooled together — intentional for a shared assistant |
+| Multiple devs, each wanting isolated memory | ❌ Not in this version | Planned for a future release |
+
+**ID collision risks when sharing a server between multiple users:**
+
+- **`mine` / `convo-mine`** — drawer IDs are hashed from `source_file + chunk_index`. Two users with the same file path (e.g. both have `/home/user/notes.md`) will overwrite each other's entries silently.
+- **Diary entries** — IDs include a second-resolution timestamp. Two users writing a diary entry within the same second produce the same ID; the second write silently overwrites the first.
+- **Manual `add_drawer`** — content-addressed, so identical content from two users deduplicates cleanly. Different content in the same wing/room coexists fine.
+
+For single-dev multi-workstation use these collisions are harmless (re-mining
+the same file is idempotent). Per-user isolation — collection namespacing and
+optional authentication — is planned for a follow-up PR.
+
+### Running ChromaDB with Docker
+
+```yaml
+# docker-compose.yml
+services:
+  chromadb:
+    image: chromadb/chroma:0.6.3
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chromadb_data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=False
+```
+
+```bash
+docker compose up -d
+```
+
+> **Security:** ChromaDB 0.6.x has no authentication. The container above
+> binds to all interfaces on port 8000 by default — anyone who can reach
+> that port has unrestricted read/write access to your memories.
+> Restrict access using one of:
+>
+> - Bind to localhost only (`ports: "127.0.0.1:8000:8000"`) and use SSH
+>   port-forwarding from other machines (`ssh -L 8000:localhost:8000 host`).
+> - Place the container on a private network or behind a VPN.
+> - Add a firewall rule that whitelists only your workstation IPs.
+>
+> Do not expose port 8000 to the public internet.
+
+> **Version note:** The image is pinned to `0.6.3` to match the `chromadb` client
+> version that MemPalace depends on. ChromaDB 1.0 introduced breaking changes to
+> the collection configuration API (a `_type` field the 0.6.x client does not
+> understand), so mixing versions causes `KeyError: '_type'` errors when creating
+> or opening collections. Do not use `chromadb/chroma:latest` until MemPalace
+> upgrades its client dependency.
+
+### Configuring MemPalace for remote mode
+
+Add to `~/.mempalace/config.json`:
+
+```json
+{
+  "chroma_host": "m1mini.local",
+  "chroma_port": 8000,
+  "chroma_ssl": false
+}
+```
+
+Or use environment variables (higher priority than the config file):
+
+```bash
+export MEMPALACE_CHROMA_HOST=m1mini.local
+export MEMPALACE_CHROMA_PORT=8000
+export MEMPALACE_CHROMA_SSL=false
+```
+
+| Key / Env Var | Default | Description |
+|---|---|---|
+| `chroma_host` / `MEMPALACE_CHROMA_HOST` | _(none)_ | Hostname or IP. Absence means local mode. |
+| `chroma_port` / `MEMPALACE_CHROMA_PORT` | `8000` | TCP port of the ChromaDB server. |
+| `chroma_ssl` / `MEMPALACE_CHROMA_SSL` | `false` | Set to `true` for HTTPS. |
+
+> **Note:** `palace_path` is ignored in remote mode. The server manages its own storage.
+
+> **Note:** Graph traversal MCP tools (`mempalace_traverse`, `mempalace_find_tunnels`,
+> `mempalace_graph_stats`) currently operate in local mode only, even when remote
+> mode is configured. All other tools respect the remote configuration.
+
+### Verify connectivity
+
+```bash
+mempalace remote status
+```
+
+This prints the active mode and — in remote mode — attempts a `.heartbeat()` call
+to confirm the server is reachable.
+
+---
+
 ## File Reference
 
 | File | What |
